@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Groundwater Monitor',
+      title: 'Groundwater Monitor  using DWLR stations.  ",
       theme: ThemeData(primarySwatch: Colors.blue),
       home: HomeScreen(),
     );
