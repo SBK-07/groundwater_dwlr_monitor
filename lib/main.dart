@@ -45,6 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  final ScrollController _scrollController = ScrollController(); // For scroll control
+  final GlobalKey _pageViewKey = GlobalKey();//Global
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -82,115 +86,81 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           ListView(
+            controller: _scrollController, // Attach scroll controller
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // App name in the body
-                  Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'Groundwater Monitor Using DWLR stations',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.teal[700],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  // Swipe-down button in the body
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Simple scroll-down design
-                        Scrollable.ensureVisible(
-                          context,
-                          alignment: 0.5,
-                          duration: Duration(milliseconds: 500),
-                        );
-                      },
-                      icon: Icon(Icons.arrow_downward, color: Colors.teal[700]),
-                      label: Text('Swipe Down to Explore'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24.0,
-                          vertical: 12.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Horizontal PageView with navigation
-                  Container(
-                    height: 400,
-                    margin: EdgeInsets.all(16.0),
-                    child: Stack(
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.75, // 3/4th of screen
+                    child: Column(
                       children: [
-                        PageView.builder(
-                          controller: _pageController,
-                          scrollDirection: Axis.horizontal,
-                          itemBuilder: (context, index) {
-                            return _pages[index % _pages.length];
-                          },
+                        // App name centered
+                        Align(
+                          alignment: Alignment.center,
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text(
+                              'Groundwater Monitor Using DWLR stations',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal[700],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
-                        // Positioned arrow buttons at side middle (encircled positions)
-                        Positioned(
-                          top: 184, // Middle height (400 / 2 - icon size / 2)
-                          left: 10,
-                          child: IconButton(
-                            icon: Icon(Icons.arrow_left, size: 32),
+                        Spacer(), // Pushes button to bottom inside 3/4th box
+                        // Swipe down button with scroll action
+                        Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: ElevatedButton.icon(
                             onPressed: () {
-                              if (_pageController.hasClients) {
-                                _pageController.previousPage(
-                                  duration: Duration(milliseconds: 300),
+                              final context = _pageViewKey.currentContext;
+                              if (context != null) {
+                                Scrollable.ensureVisible(
+                                  context,
+                                  duration: Duration(milliseconds: 500),
                                   curve: Curves.easeInOut,
                                 );
                               }
                             },
-                          ),
-                        ),
-                        Positioned(
-                          top: 184, // Middle height
-                          right: 10,
-                          child: IconButton(
-                            icon: Icon(Icons.arrow_right, size: 32),
-                            onPressed: () {
-                              if (_pageController.hasClients) {
-                                _pageController.nextPage(
-                                  duration: Duration(milliseconds: 300),
-                                  curve: Curves.easeInOut,
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                        // Page dots indicator at bottom
-                        Positioned(
-                          bottom: 10,
-                          left: 0,
-                          right: 0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(_pages.length, (index) {
-                              return Container(
-                                margin: EdgeInsets.symmetric(horizontal: 4.0),
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _currentIndex.round() == index
-                                      ? Colors.blue
-                                      : Colors.grey,
-                                ),
-                              );
-                            }),
+                            icon: Icon(Icons.arrow_downward, color: Colors.teal[700]),
+                            label: Text("Swipe Down to Explore"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
+                  // Horizontal PageView with navigation
+                  Container(
+                    key: _pageViewKey,
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,          // Background color of outer container
+
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: SwipableContainer(
+                      controller: _pageController,
+                      currentIndex: _currentIndex,
+                      pages: _pages,
+                    ),
+                  ),
+
+                  // Add padding to ensure scrollable space
+                  SizedBox(height: 100), // Buffer to allow scrolling back up
                 ],
               ),
             ],
@@ -231,6 +201,99 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class SwipableContainer extends StatelessWidget {
+  final PageController controller;
+  final double currentIndex;
+  final List<Widget> pages;
+
+  const SwipableContainer({
+    Key? key,
+    required this.controller,
+    required this.currentIndex,
+    required this.pages,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 400,
+      margin: EdgeInsets.symmetric(
+        horizontal: 4.0, // left & right
+        vertical: 8.0,    // top & bottom
+      ),
+      decoration: BoxDecoration(
+        color: Colors.yellow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: controller,
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              return pages[index % pages.length];
+            },
+          ),
+          // Left arrow
+          Positioned(
+            top: 184,
+            left: 10,
+            child: IconButton(
+              icon: Icon(Icons.arrow_left, size: 32),
+              onPressed: () {
+                if (controller.hasClients) {
+                  controller.previousPage(
+                    duration: Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
+              },
+            ),
+          ),
+          // Right arrow
+          Positioned(
+            top: 184,
+            right: 10,
+            child: IconButton(
+              icon: Icon(Icons.arrow_right, size: 32),
+              onPressed: () {
+                if (controller.hasClients) {
+                  controller.nextPage(
+                    duration: Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
+              },
+            ),
+          ),
+          // Page dots
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(pages.length, (index) {
+                return Container(
+                  margin: EdgeInsets.symmetric(horizontal: 4.0),
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: currentIndex.round() == index
+                        ? Colors.blue
+                        : Colors.grey,
+                  ),
+                );
+              }),
+            ),
+          ),
         ],
       ),
     );
