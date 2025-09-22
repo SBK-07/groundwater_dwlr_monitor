@@ -178,19 +178,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: ListView(
                         children: [
                           ListTile(
-                            title: Text('Button 1'),
+                            title: Text('Login'),
                             onTap: () => _toggleMenu(),
                           ),
                           ListTile(
-                            title: Text('Button 2'),
+                            title: Text('Download Dataset'),
                             onTap: () => _toggleMenu(),
                           ),
                           ListTile(
-                            title: Text('Button 3'),
+                            title: Text('User Guide'),
                             onTap: () => _toggleMenu(),
                           ),
                           ListTile(
-                            title: Text('Button 4'),
+                            title: Text('About'),
                             onTap: () => _toggleMenu(),
                           ),
                         ],
