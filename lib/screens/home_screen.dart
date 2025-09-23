@@ -35,12 +35,16 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
-        child: Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            color: Colors.blue[900],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300), // Adjust as needed
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Colors.blue[900],
+            ),
           ),
         ),
       ),

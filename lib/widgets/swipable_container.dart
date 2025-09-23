@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';  // If needed for styles, else remove
 
 class SwipableContainer extends StatelessWidget {
   final PageController controller;
@@ -36,10 +35,12 @@ class SwipableContainer extends StatelessWidget {
               controller: controller,
               scrollDirection: Axis.horizontal,
               itemBuilder: (context, index) {
-                return pages[index % pages.length];
+                return Container(
+                  width: MediaQuery.of(context).size.width,
+                  child: pages[index % pages.length],
+                );
               },
             ),
-            // Left arrow
             Positioned(
               top: 184,
               left: 10,
@@ -55,7 +56,6 @@ class SwipableContainer extends StatelessWidget {
                 },
               ),
             ),
-            // Right arrow
             Positioned(
               top: 184,
               right: 10,
@@ -71,7 +71,6 @@ class SwipableContainer extends StatelessWidget {
                 },
               ),
             ),
-            // Page dots
             Positioned(
               bottom: 16,
               left: 0,
@@ -85,15 +84,9 @@ class SwipableContainer extends StatelessWidget {
                     width: currentIndex.round() == index ? 20 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      shape: currentIndex.round() == index
-                          ? BoxShape.rectangle
-                          : BoxShape.circle,
-                      borderRadius: currentIndex.round() == index
-                          ? BorderRadius.circular(4)
-                          : null,
-                      color: currentIndex.round() == index
-                          ? Colors.blue[700]
-                          : Colors.grey[400],
+                      shape: BoxShape.rectangle,
+                      borderRadius: BorderRadius.circular(4),
+                      color: currentIndex.round() == index ? Colors.blue[700] : Colors.grey[400],
                     ),
                   );
                 }),
