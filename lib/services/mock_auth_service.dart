@@ -25,6 +25,7 @@ class MockAuthService {
 
   MockUser? _currentUser;
 
+
   // Sign in with email and password
   Future<MockUser?> signInWithEmailPassword(String email, String password) async {
     // Simulate API call delay
@@ -95,4 +96,6 @@ class MockAuthService {
     _currentUser = null;
     await Future.delayed(const Duration(milliseconds: 500));
   }
+  List<MockUser> getMockUsers() => _mockUsers;
+
 }

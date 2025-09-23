@@ -1,55 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:groundwater_monitor/widgets/swipable_container.dart';
+import 'package:groundwater_monitor/services/mock_auth_service.dart';
+import 'package:groundwater_monitor/screens/dataset_page.dart';
+import 'package:groundwater_monitor/screens/authority_dashboard.dart';
+import 'package:groundwater_monitor/models/mock_user.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import '../widgets/swipable_container.dart';
-import 'authority_sign_in_page.dart';
-import 'dataset_page.dart';
-import 'about_page.dart';  // Added for missing 'About App' page
-import 'settings_page.dart';  // Added for missing 'Settings' page
+import 'package:groundwater_monitor/screens/authority_sign_in_page.dart';
+import 'package:groundwater_monitor/data/hardcoded_data.dart'; // For data access
+import 'package:groundwater_monitor/models/groundwater_data.dart'; // For GroundwaterData model
+import 'package:fl_chart/fl_chart.dart'; // For charts
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isMenuOpen = false;
   late PageController _pageController;
   double _currentIndex = 0;
-  final List<Widget> _pages = [
-    _buildPageContent('Current Area Visualization', Colors.blue[50]!),
-    _buildPageContent('Groundwater Level Diagram', Colors.blue[100]!),
-    _buildPageContent('Date vs Level Graph', Colors.blue[200]!),
-    _buildPageContent('Predictions/Other Info', Colors.blue[300]!),
-  ];
-
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _pageViewKey = GlobalKey();
-
-  static Widget _buildPageContent(String title, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 300), // Adjust as needed
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Colors.blue[900],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  final MockAuthService mockAuth = MockAuthService();
 
   @override
   void initState() {
@@ -57,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _pageController = PageController(initialPage: 0);
     _pageController.addListener(() {
       setState(() {
-        _currentIndex = _pageController.page! % _pages.length;
+        _currentIndex = _pageController.page! % 4; // 4 pages as per your design
       });
     });
   }
@@ -123,7 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // App title
                         Padding(
                           padding: const EdgeInsets.all(24.0),
                           child: Text(
@@ -138,7 +111,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const Spacer(),
-                        // Swipe down button
                         Padding(
                           padding: const EdgeInsets.all(24.0),
                           child: ElevatedButton.icon(
@@ -152,8 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 );
                               }
                             },
-                            icon: Icon(Icons.arrow_downward,
-                                color: Colors.blue[700]),
+                            icon: Icon(Icons.arrow_downward, color: Colors.blue[700]),
                             label: Text(
                               "Explore Features",
                               style: GoogleFonts.poppins(
@@ -176,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  // PageView Section
+                  // SwipableContainer Section with Visualizations
                   Container(
                     key: _pageViewKey,
                     padding: const EdgeInsets.all(16),
@@ -193,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: SwipableContainer(
                       controller: _pageController,
                       currentIndex: _currentIndex,
-                      pages: _pages,
+                      selectedLocation: 'CGL', // Default to CGL data
                     ),
                   ),
                   const SizedBox(height: 100),
@@ -309,59 +280,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   context,
                                   'About App',
                                   Icons.info,
-                                      () {
-                                    _toggleMenu();
-                                    Navigator.push(
-                                      context,
-                                      PageRouteBuilder(
-                                        pageBuilder: (context, animation,
-                                            secondaryAnimation) =>
-                                        const AboutPage(),
-                                        transitionsBuilder: (context, animation,
-                                            secondaryAnimation, child) {
-                                          const begin = Offset(0.0, 1.0);
-                                          const end = Offset.zero;
-                                          const curve = Curves.easeInOut;
-                                          var tween = Tween(
-                                              begin: begin, end: end)
-                                              .chain(CurveTween(curve: curve));
-                                          return SlideTransition(
-                                            position: animation.drive(tween),
-                                            child: child,
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
+                                  _toggleMenu,
                                 ),
                                 _buildMenuButton(
                                   context,
                                   'Settings',
                                   Icons.settings,
-                                      () {
-                                    _toggleMenu();
-                                    Navigator.push(
-                                      context,
-                                      PageRouteBuilder(
-                                        pageBuilder: (context, animation,
-                                            secondaryAnimation) =>
-                                        const SettingsPage(),
-                                        transitionsBuilder: (context, animation,
-                                            secondaryAnimation, child) {
-                                          const begin = Offset(0.0, 1.0);
-                                          const end = Offset.zero;
-                                          const curve = Curves.easeInOut;
-                                          var tween = Tween(
-                                              begin: begin, end: end)
-                                              .chain(CurveTween(curve: curve));
-                                          return SlideTransition(
-                                            position: animation.drive(tween),
-                                            child: child,
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
+                                  _toggleMenu,
                                 ),
                               ],
                             ),

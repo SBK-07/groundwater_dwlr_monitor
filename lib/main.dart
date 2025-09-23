@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
-
-import 'screens/home_screen.dart';
+import 'package:groundwater_monitor/screens/home_screen.dart';
+import 'package:groundwater_monitor/screens/dataset_page.dart'; // Add this
+import 'package:groundwater_monitor/screens/authority_dashboard.dart'; // Add this
 
 void main() {
   runApp(const MyApp());
