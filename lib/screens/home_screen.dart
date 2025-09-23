@@ -6,9 +6,11 @@ import 'package:groundwater_monitor/screens/authority_dashboard.dart';
 import 'package:groundwater_monitor/models/mock_user.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:groundwater_monitor/screens/authority_sign_in_page.dart';
-import 'package:groundwater_monitor/data/hardcoded_data.dart'; // For data access
-import 'package:groundwater_monitor/models/groundwater_data.dart'; // For GroundwaterData model
-import 'package:fl_chart/fl_chart.dart'; // For charts
+import 'package:groundwater_monitor/data/hardcoded_data.dart';
+import 'package:groundwater_monitor/models/groundwater_data.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:groundwater_monitor/l10n/app_localizations.dart';
+import 'package:groundwater_monitor/widgets/language_switcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _pageController = PageController(initialPage: 0);
     _pageController.addListener(() {
       setState(() {
-        _currentIndex = _pageController.page! % 4; // 4 pages as per your design
+        _currentIndex = _pageController.page! % 4;
       });
     });
   }
@@ -51,10 +53,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!; // ✅ non-null
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Groundwater Monitor',
+          l.appTitle, // ✅ safe now
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -64,6 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: _toggleMenu,
         ),
+        actions: const [
+          LanguageSwitcher(),
+          SizedBox(width: 8),
+        ],
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -100,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Padding(
                           padding: const EdgeInsets.all(24.0),
                           child: Text(
-                            'Groundwater Monitor\nUsing DWLR Stations',
+                            '${l.appTitle}\nUsing DWLR Stations',
                             style: GoogleFonts.poppins(
                               fontSize: 28,
                               fontWeight: FontWeight.w700,
@@ -126,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                             icon: Icon(Icons.arrow_downward, color: Colors.blue[700]),
                             label: Text(
-                              "Explore Features",
+                              l.exploreFeatures,
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -164,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: SwipableContainer(
                       controller: _pageController,
                       currentIndex: _currentIndex,
-                      selectedLocation: 'CGL', // Default to CGL data
+                      selectedLocation: 'CGL',
                     ),
                   ),
                   const SizedBox(height: 100),
@@ -205,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                'Menu',
+                                l.menu,
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 24,
@@ -220,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 _buildMenuButton(
                                   context,
-                                  'Sign in as Authority',
+                                  l.signInAsAuthority,
                                   Icons.security,
                                       () {
                                     _toggleMenu();
@@ -249,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 _buildMenuButton(
                                   context,
-                                  'View Dataset',
+                                  l.viewDataset,
                                   Icons.cloud_download,
                                       () {
                                     _toggleMenu();
@@ -278,13 +286,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 _buildMenuButton(
                                   context,
-                                  'About App',
+                                  l.aboutApp,
                                   Icons.info,
                                   _toggleMenu,
                                 ),
                                 _buildMenuButton(
                                   context,
-                                  'Settings',
+                                  l.settings,
                                   Icons.settings,
                                   _toggleMenu,
                                 ),
@@ -303,8 +311,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMenuButton(BuildContext context, String title, IconData icon,
-      VoidCallback onTap) {
+  Widget _buildMenuButton(
+      BuildContext context, String title, IconData icon, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.blue[700]),
       title: Text(

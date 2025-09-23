@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:groundwater_monitor/l10n/app_localizations.dart';
+
 class GroundwaterData {
   final DateTime date;
   final double waterLevel;
@@ -20,4 +23,15 @@ class GroundwaterData {
     required this.stationStatus,
     required this.location,
   });
+
+  // Helper method to get localized status
+  String getLocalizedAnomalyStatus(BuildContext context) {
+    final l = AppLocalizations.of(context)!; // ✅ non-null
+    return anomalyStatus == 'Suspicious' ? l.suspicious : l.normal;
+  }
+
+  String getLocalizedStationStatus(BuildContext context) {
+    final l = AppLocalizations.of(context)!; // ✅ non-null
+    return stationStatus == 'Active' ? l.active : stationStatus;
+  }
 }
