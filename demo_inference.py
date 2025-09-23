@@ -17,20 +17,15 @@ df = df.dropna(subset=feature_cols + [target_col])
 X = df[feature_cols].values.astype(np.float32)
 y_true = df[target_col].values
 
-# Load TFLite model
-interpreter = tf.lite.Interpreter(model_path="elm_booster.tflite")
-interpreter.allocate_tensors()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+# Load ELM (Keras) + XGBoost booster, run combined inference
+from tensorflow import keras
+elm = keras.models.load_model('elm_model.h5', compile=False)
+import xgboost as xgb
+xgb_booster = xgb.XGBRegressor()
+xgb_booster.load_model('xgb_booster.json')
 
-# Predict for all samples
-y_pred = []
-for i in range(X.shape[0]):
-	x_input = X[i:i+1]
-	interpreter.set_tensor(input_details[0]['index'], x_input)
-	interpreter.invoke()
-	output = interpreter.get_tensor(output_details[0]['index'])
-	y_pred.append(output[0][0])
-y_pred = np.array(y_pred)
+y_pred_elm = elm.predict(X, verbose=0).flatten()
+residual_pred = xgb_booster.predict(X).flatten()
+y_pred = y_pred_elm + residual_pred
 
-print("Predicted groundwater level:", output[0][0])
+print("Predicted groundwater level (first sample):", y_pred[0])

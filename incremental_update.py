@@ -38,9 +38,11 @@ df_new = df_new.dropna(subset=feature_cols + [target_col])
 X_new = df_new[feature_cols].values
 y_new = df_new[target_col].values
 
-# Load models
+# Load models (ELM + XGBoost booster)
 elm = keras.models.load_model('elm_model.h5', custom_objects={'ELMLayer': ELMLayer}, compile=False)
-booster = keras.models.load_model('booster_model.h5', compile=False)
+import xgboost as xgb
+xgb_booster = xgb.XGBRegressor()
+xgb_booster.load_model('xgb_booster.json')
 
 # Retrain only output layer of ELM
 for layer in elm.layers:
@@ -48,21 +50,20 @@ for layer in elm.layers:
 elm.compile(optimizer='adam', loss=keras.losses.MeanSquaredError())
 elm.fit(X_new, y_new, epochs=5, batch_size=16, verbose=1)
 
-# Update booster on new residuals
+# Update XGBoost booster on new residuals
 y_pred_elm = elm.predict(X_new).flatten()
 residuals = y_new - y_pred_elm
-booster.compile(optimizer='adam', loss=keras.losses.MeanSquaredError())
-booster.fit(X_new, residuals, epochs=5, batch_size=16, verbose=1)
+xgb_booster.fit(X_new, residuals, xgb_model='xgb_booster.json')
 
 # Save updated models
 elm.save('elm_model.h5')
-booster.save('booster_model.h5')
+xgb_booster.save_model('xgb_booster.json')
 
 print("\n" + "="*60)
 print("🔄 INCREMENTAL UPDATE COMPLETED")
 print("="*60)
 print("✅ ELM model updated and saved")
-print("✅ Booster model updated and saved")
+print("✅ XGBoost booster updated and saved")
 print("\n🔍 Running model evaluation...")
 
 # Import and run evaluation

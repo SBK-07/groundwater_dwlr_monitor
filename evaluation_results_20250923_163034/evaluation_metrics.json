@@ -1,0 +1,45 @@
+{
+  "evaluation_timestamp": "20250923_163034",
+  "test_data_metrics": {
+    "dataset": "test_data",
+    "elm_only": {
+      "r2": -0.23085414955347106,
+      "mae": 0.5333219517744786,
+      "mse": 0.48695922096420696,
+      "rmse": 0.6978246348218203
+    },
+    "combined_model": {
+      "r2": 0.9932503868959889,
+      "mae": 0.02133917665266776,
+      "mse": 0.002670329656955258,
+      "rmse": 0.05167523252928097
+    }
+  },
+  "new_data_metrics": {
+    "dataset": "new_data",
+    "elm_only": {
+      "r2": -0.23085414955347106,
+      "mae": 0.5333219517744786,
+      "mse": 0.48695922096420696,
+      "rmse": 0.6978246348218203
+    },
+    "combined_model": {
+      "r2": 0.9932503868959889,
+      "mae": 0.02133917665266776,
+      "mse": 0.002670329656955258,
+      "rmse": 0.05167523252928097
+    }
+  },
+  "improvements": {
+    "rmse_improvement_test_pct": 92.5948110813721,
+    "rmse_improvement_new_pct": 92.5948110813721,
+    "r2_improvement_test": 1.22410453644946,
+    "r2_improvement_new": 1.22410453644946
+  },
+  "model_info": {
+    "elm_hidden_units": 64,
+    "xgb_num_trees": null,
+    "total_test_samples": 366,
+    "total_new_samples": 366
+  }
+}

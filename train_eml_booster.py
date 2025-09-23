@@ -27,7 +27,7 @@ else:
 # Calculate metrics for ELM+Booster
 
 # --- Load DWLR CSV with correct columns ---
-df = pd.read_csv('stream_new_rows.csv')
+df = pd.read_csv('dwlr_new_data.csv')
 
 # Use these columns: Date,Water_Level_m,Temperature_C,Rainfall_mm,pH,Dissolved_Oxygen_mg_L
 # Target: Water_Level_m, Features: Temperature_C, Rainfall_mm, pH, Dissolved_Oxygen_mg_L
@@ -80,39 +80,38 @@ n_hidden = 64
 elm = build_elm(X_train.shape[1], n_hidden)
 elm.fit(X_train, y_train, epochs=30, batch_size=32, verbose=1, validation_split=0.1)
 
-# --- Residual Booster (small MLP) ---
+# --- Residual Booster (XGBoost on ELM residuals) ---
 y_pred_elm = elm.predict(X_train).flatten()
 residuals = y_train - y_pred_elm
 
-booster = keras.Sequential([
-    keras.layers.Input(shape=(X_train.shape[1],)),
-    keras.layers.Dense(16, activation='relu'),
-    keras.layers.Dense(1)
-])
-booster.compile(optimizer='adam', loss='mse')
-booster.fit(X_train, residuals, epochs=20, batch_size=32, verbose=1, validation_split=0.1)
+# XGBoost will learn to predict residuals given input features
+xgb_booster = xgb.XGBRegressor(
+    n_estimators=300,
+    max_depth=4,
+    learning_rate=0.05,
+    subsample=0.9,
+    colsample_bytree=0.9,
+    reg_lambda=1.0,
+    random_state=42,
+    n_jobs=-1
+)
+xgb_booster.fit(X_train, residuals)
 
 
 # --- Evaluation ---
 y_pred_test_elm = elm.predict(X_test).flatten()
-y_pred_test_boost = y_pred_test_elm + booster.predict(X_test).flatten()
+y_pred_test_combined = y_pred_test_elm + xgb_booster.predict(X_test).flatten()
 mse_elm = mean_squared_error(y_test, y_pred_test_elm)
-mse_boost = mean_squared_error(y_test, y_pred_test_boost)
-
-# XGBoost Baseline
-xgb_model = xgb.XGBRegressor(n_estimators=50, max_depth=3)
-xgb_model.fit(X_train, y_train)
-y_pred_xgb = xgb_model.predict(X_test)
-mse_xgb = mean_squared_error(y_test, y_pred_xgb)
+mse_combined = mean_squared_error(y_test, y_pred_test_combined)
 
 import matplotlib.pyplot as plt
 import json
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-# Calculate metrics for ELM+Booster
-r2 = r2_score(y_test, y_pred_test_boost)
-mae = mean_absolute_error(y_test, y_pred_test_boost)
-mse = mean_squared_error(y_test, y_pred_test_boost)
+# Calculate metrics for ELM+XGBoost combined
+r2 = r2_score(y_test, y_pred_test_combined)
+mae = mean_absolute_error(y_test, y_pred_test_combined)
+mse = mean_squared_error(y_test, y_pred_test_combined)
 rmse = np.sqrt(mse)
 
 results = {
@@ -130,7 +129,7 @@ print("Metrics saved to prediction_metrics.json")
 # Plot actual vs predicted
 plt.figure(figsize=(10,6))
 plt.plot(y_test, label='Actual', marker='o')
-plt.plot(y_pred_test_boost, label='Predicted', marker='x')
+plt.plot(y_pred_test_combined, label='Predicted (ELM+XGB)', marker='x')
 plt.title('Actual vs Predicted Groundwater Level (Test Set)')
 plt.xlabel('Sample Index')
 plt.ylabel('Water_Level_m')
@@ -140,30 +139,49 @@ plt.savefig('actual_vs_predicted.png')
 plt.close()
 print("Chart saved to actual_vs_predicted.png")
 print(f"ELM MSE: {mse_elm:.4f}")
-print(f"ELM+Booster MSE: {mse_boost:.4f}")
-print(f"XGBoost MSE: {mse_xgb:.4f}")
+print(f"ELM+XGB MSE: {mse_combined:.4f}")
+improvement_pct = 100.0 * (mse_elm - mse_combined) / mse_elm if mse_elm > 0 else 0.0
+print(f"Combined model reduced MSE by {improvement_pct:.2f}% vs ELM-only")
 
-# --- Export to TFLite (combined model, Functional API) ---
-inputs = keras.Input(shape=(X_train.shape[1],), name="input")
-y_elm = elm(inputs)
-y_boost = booster(inputs)
-outputs = keras.layers.Add()([y_elm, y_boost])
-combined_model = keras.Model(inputs=inputs, outputs=outputs, name="ELMBoosterFunctional")
-combined_model.compile(optimizer='adam', loss='mse')
-
-# Save as TFLite
-converter = tf.lite.TFLiteConverter.from_keras_model(combined_model)
+# --- Export ELM to TFLite for on-device inference (XGB runs server-side) ---
+converter = tf.lite.TFLiteConverter.from_keras_model(elm)
 tflite_model = converter.convert()
-with open('elm_booster.tflite', 'wb') as f:
+with open('elm.tflite', 'wb') as f:
     f.write(tflite_model)
-print("TFLite model exported: elm_booster.tflite")
+print("TFLite model exported: elm.tflite")
 
 # --- SAVE MODELS ---
 elm.save('elm_model.h5')
-booster.save('booster_model.h5')
-print("Models saved as elm_model.h5 and booster_model.h5")
+xgb_booster.save_model('xgb_booster.json')
+print("Models saved: elm_model.h5 and xgb_booster.json")
 
-def predict_future(model, last_row, feature_cols, days=1):
+# Save a small manifest for downstream tools
+manifest = {
+    "created_at": datetime.datetime.now().isoformat(),
+    "feature_columns": feature_cols,
+    "target_column": target_col,
+    "elm_hidden_units": n_hidden,
+    "xgb_params": {
+        "n_estimators": 300,
+        "max_depth": 4,
+        "learning_rate": 0.05,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "reg_lambda": 1.0,
+        "random_state": 42
+    },
+    "artifacts": {
+        "elm_h5": "elm_model.h5",
+        "xgb_json": "xgb_booster.json",
+        "elm_tflite": "elm.tflite",
+        "metrics_json": "prediction_metrics.json",
+        "actual_vs_predicted": "actual_vs_predicted.png"
+    }
+}
+with open('model_manifest.json', 'w') as f:
+    json.dump(manifest, f, indent=2)
+
+def predict_future(elm_model, xgb_model, last_row, feature_cols, days=1):
     """
     Predict groundwater level for the next 'days' days.
     last_row: pd.Series or np.array with the latest known features.
@@ -176,7 +194,9 @@ def predict_future(model, last_row, feature_cols, days=1):
     for _ in range(days):
         # Prepare input for model
         X_input = np.array([current_features[feature_cols].astype(np.float32)])
-        y_pred = model.predict(X_input)[0, 0]
+        y_pred_elm_next = elm_model.predict(X_input)[0, 0]
+        residual_next = xgb_model.predict(X_input)[0]
+        y_pred = y_pred_elm_next + residual_next
         preds.append(y_pred)
         # Update features for next day (customize as needed)
         # For demo: keep other features constant, update water level
@@ -188,15 +208,15 @@ def predict_future(model, last_row, feature_cols, days=1):
 # Get the last row from your dataframe
 last_row = df.iloc[-1].copy()
 # Predict next day
-next_day_pred = predict_future(combined_model, last_row, feature_cols, days=1)
+next_day_pred = predict_future(elm, xgb_booster, last_row, feature_cols, days=1)
 print(f"Predicted groundwater level for next day: {next_day_pred[0]:.3f}")
 
 # Predict next 30 days (1 month)
-next_month_preds = predict_future(combined_model, last_row, feature_cols, days=30)
+next_month_preds = predict_future(elm, xgb_booster, last_row, feature_cols, days=30)
 print(f"Predicted groundwater levels for next month: {next_month_preds}")
 
 # Predict for next 12 months (assuming 30 days per month)
-next_year_preds = predict_future(combined_model, last_row, feature_cols, days=12*30)
+next_year_preds = predict_future(elm, xgb_booster, last_row, feature_cols, days=12*30)
 print(f"Predicted groundwater levels for next year: {next_year_preds}")
 
 # For monthly summary, you can take the last value of each 30-day block:

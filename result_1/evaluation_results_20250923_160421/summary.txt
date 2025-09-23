@@ -1,0 +1,18 @@
+EVALUATION SUMMARY
+Timestamp: 20250923_160421
+
+Test Data - Combined Model
+R2: 0.9962
+RMSE: 0.0281
+MAE: 0.0115
+
+New Data - Combined Model
+R2: 0.9962
+RMSE: 0.0281
+MAE: 0.0115
+
+Improvements vs ELM-only
+RMSE Improvement (Test): 95.72%
+RMSE Improvement (New): 95.72%
+
+Observation: Your model is improving in learning and predicting new data.

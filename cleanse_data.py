@@ -5,7 +5,7 @@ import os
 
 # --- Step 1: Load dataset ---
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-DATA_PATH = os.path.join(ROOT, "invention_model\\dummy_datasets\\rmn", "rmn2023.csv")
+DATA_PATH = os.path.join(ROOT, "invention_model\\dummy_datasets\\thiruvallur", "dummy2024.csv")
 # NEW_DATA_PATH = os.path.join(ROOT, "data", "chennai2023.csv")
 df1 = pd.read_csv(DATA_PATH)
 
@@ -89,5 +89,5 @@ df1 = detect_and_fix_anomalies(
     df1, ['Temperature_C', 'Rainfall_mm', 'Water_Level_m', 'pH', 'Dissolved_Oxygen_mg_L']
 )
 
-df1.to_csv("dwlr_new_data.csv")
+df1.to_csv("test_dataset.csv")
 print("File successfully cleansed and saved to the desired location..!!")

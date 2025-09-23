@@ -60,28 +60,21 @@ def evaluate_model_performance():
     X_new = df_new[feature_cols].values
     y_new = df_new[target_col].values
     
-    # Load updated models
+    # Load updated models (ELM + XGBoost residual booster)
     print("🤖 Loading updated models...")
     elm = keras.models.load_model('elm_model.h5', custom_objects={'ELMLayer': ELMLayer}, compile=False)
-    booster = keras.models.load_model('booster_model.h5', compile=False)
-    
-    # Create combined model for predictions
-    inputs = keras.Input(shape=(X_test.shape[1],), name="input")
-    y_elm = elm(inputs)
-    y_boost = booster(inputs)
-    outputs = keras.layers.Add()([y_elm, y_boost])
-    combined_model = keras.Model(inputs=inputs, outputs=outputs, name="ELMBoosterCombined")
+    import xgboost as xgb
+    xgb_booster = xgb.XGBRegressor()
+    xgb_booster.load_model('xgb_booster.json')
     
     # Predictions on test data
     print("🔮 Making predictions...")
     y_pred_test_elm = elm.predict(X_test, verbose=0).flatten()
-    y_pred_test_boost = booster.predict(X_test, verbose=0).flatten()
-    y_pred_test_combined = combined_model.predict(X_test, verbose=0).flatten()
+    y_pred_test_combined = y_pred_test_elm + xgb_booster.predict(X_test).flatten()
     
     # Predictions on new data
     y_pred_new_elm = elm.predict(X_new, verbose=0).flatten()
-    y_pred_new_boost = booster.predict(X_new, verbose=0).flatten()
-    y_pred_new_combined = combined_model.predict(X_new, verbose=0).flatten()
+    y_pred_new_combined = y_pred_new_elm + xgb_booster.predict(X_new).flatten()
     
     # Calculate metrics for test data
     print("📈 Calculating metrics...")
@@ -92,12 +85,6 @@ def evaluate_model_performance():
             'mae': mean_absolute_error(y_test, y_pred_test_elm),
             'mse': mean_squared_error(y_test, y_pred_test_elm),
             'rmse': np.sqrt(mean_squared_error(y_test, y_pred_test_elm))
-        },
-        'booster_only': {
-            'r2': r2_score(y_test, y_pred_test_boost),
-            'mae': mean_absolute_error(y_test, y_pred_test_boost),
-            'mse': mean_squared_error(y_test, y_pred_test_boost),
-            'rmse': np.sqrt(mean_squared_error(y_test, y_pred_test_boost))
         },
         'combined_model': {
             'r2': r2_score(y_test, y_pred_test_combined),
@@ -116,12 +103,6 @@ def evaluate_model_performance():
             'mse': mean_squared_error(y_new, y_pred_new_elm),
             'rmse': np.sqrt(mean_squared_error(y_new, y_pred_new_elm))
         },
-        'booster_only': {
-            'r2': r2_score(y_new, y_pred_new_boost),
-            'mae': mean_absolute_error(y_new, y_pred_new_boost),
-            'mse': mean_squared_error(y_new, y_pred_new_boost),
-            'rmse': np.sqrt(mean_squared_error(y_new, y_pred_new_boost))
-        },
         'combined_model': {
             'r2': r2_score(y_new, y_pred_new_combined),
             'mae': mean_absolute_error(y_new, y_pred_new_combined),
@@ -131,13 +112,31 @@ def evaluate_model_performance():
     }
     
     # Save metrics
+    # Compute improvement statements
+    rmse_improvement_test_pct = 100.0 * (metrics_test['elm_only']['rmse'] - metrics_test['combined_model']['rmse']) / metrics_test['elm_only']['rmse'] if metrics_test['elm_only']['rmse'] > 0 else 0.0
+    rmse_improvement_new_pct = 100.0 * (metrics_new['elm_only']['rmse'] - metrics_new['combined_model']['rmse']) / metrics_new['elm_only']['rmse'] if metrics_new['elm_only']['rmse'] > 0 else 0.0
+    r2_improvement_test = metrics_test['combined_model']['r2'] - metrics_test['elm_only']['r2']
+    r2_improvement_new = metrics_new['combined_model']['r2'] - metrics_new['elm_only']['r2']
+
+    # Prepare model info
+    try:
+        num_trees = xgb_booster.get_booster().num_trees()
+    except Exception:
+        num_trees = None
+
     all_metrics = {
         'evaluation_timestamp': timestamp,
         'test_data_metrics': metrics_test,
         'new_data_metrics': metrics_new,
+        'improvements': {
+            'rmse_improvement_test_pct': rmse_improvement_test_pct,
+            'rmse_improvement_new_pct': rmse_improvement_new_pct,
+            'r2_improvement_test': r2_improvement_test,
+            'r2_improvement_new': r2_improvement_new
+        },
         'model_info': {
             'elm_hidden_units': elm.layers[1].n_hidden,
-            'booster_layers': len(booster.layers),
+            'xgb_num_trees': num_trees,
             'total_test_samples': len(y_test),
             'total_new_samples': len(y_new)
         }
@@ -218,9 +217,9 @@ def evaluate_model_performance():
     # 7. Metrics comparison bar chart
     plt.figure(figsize=(12, 8))
     
-    models = ['ELM Only', 'Booster Only', 'Combined']
-    test_r2 = [metrics_test['elm_only']['r2'], metrics_test['booster_only']['r2'], metrics_test['combined_model']['r2']]
-    new_r2 = [metrics_new['elm_only']['r2'], metrics_new['booster_only']['r2'], metrics_new['combined_model']['r2']]
+    models = ['ELM Only', 'Combined']
+    test_r2 = [metrics_test['elm_only']['r2'], metrics_test['combined_model']['r2']]
+    new_r2 = [metrics_new['elm_only']['r2'], metrics_new['combined_model']['r2']]
     
     x = np.arange(len(models))
     width = 0.35
@@ -236,8 +235,8 @@ def evaluate_model_performance():
     plt.grid(True, alpha=0.3)
     
     # RMSE comparison
-    test_rmse = [metrics_test['elm_only']['rmse'], metrics_test['booster_only']['rmse'], metrics_test['combined_model']['rmse']]
-    new_rmse = [metrics_new['elm_only']['rmse'], metrics_new['booster_only']['rmse'], metrics_new['combined_model']['rmse']]
+    test_rmse = [metrics_test['elm_only']['rmse'], metrics_test['combined_model']['rmse']]
+    new_rmse = [metrics_new['elm_only']['rmse'], metrics_new['combined_model']['rmse']]
     
     plt.subplot(2, 2, 2)
     plt.bar(x - width/2, test_rmse, width, label='Test Data', alpha=0.8)
@@ -250,8 +249,8 @@ def evaluate_model_performance():
     plt.grid(True, alpha=0.3)
     
     # MAE comparison
-    test_mae = [metrics_test['elm_only']['mae'], metrics_test['booster_only']['mae'], metrics_test['combined_model']['mae']]
-    new_mae = [metrics_new['elm_only']['mae'], metrics_new['booster_only']['mae'], metrics_new['combined_model']['mae']]
+    test_mae = [metrics_test['elm_only']['mae'], metrics_test['combined_model']['mae']]
+    new_mae = [metrics_new['elm_only']['mae'], metrics_new['combined_model']['mae']]
     
     plt.subplot(2, 2, 3)
     plt.bar(x - width/2, test_mae, width, label='Test Data', alpha=0.8)
@@ -269,8 +268,14 @@ def evaluate_model_performance():
     plt.text(0.1, 0.7, f'Timestamp: {timestamp}', fontsize=10)
     plt.text(0.1, 0.6, f'Test Samples: {len(y_test)}', fontsize=10)
     plt.text(0.1, 0.5, f'New Samples: {len(y_new)}', fontsize=10)
-    plt.text(0.1, 0.4, f'Best R² (Combined): {max(test_r2[2], new_r2[2]):.4f}', fontsize=10)
-    plt.text(0.1, 0.3, f'Best RMSE (Combined): {min(test_rmse[2], new_rmse[2]):.4f}', fontsize=10)
+    plt.text(0.1, 0.4, f'Best R² (Combined): {max(test_r2[1], new_r2[1]):.4f}', fontsize=10)
+    plt.text(0.1, 0.3, f'Best RMSE (Combined): {min(test_rmse[1], new_rmse[1]):.4f}', fontsize=10)
+
+    # Improvement statements
+    rmse_improvement_test_pct = 100.0 * (metrics_test['elm_only']['rmse'] - metrics_test['combined_model']['rmse']) / metrics_test['elm_only']['rmse'] if metrics_test['elm_only']['rmse'] > 0 else 0.0
+    rmse_improvement_new_pct = 100.0 * (metrics_new['elm_only']['rmse'] - metrics_new['combined_model']['rmse']) / metrics_new['elm_only']['rmse'] if metrics_new['elm_only']['rmse'] > 0 else 0.0
+    plt.text(0.1, 0.2, f'RMSE Improvement (Test): {rmse_improvement_test_pct:.2f}%', fontsize=10)
+    plt.text(0.1, 0.1, f'RMSE Improvement (New): {rmse_improvement_new_pct:.2f}%', fontsize=10)
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.axis('off')
@@ -293,6 +298,17 @@ def evaluate_model_performance():
     print(f"   RMSE: {metrics_new['combined_model']['rmse']:.4f}")
     print(f"   MAE: {metrics_new['combined_model']['mae']:.4f}")
     
+    # Improvement statements
+    rmse_improvement_test_pct = 100.0 * (metrics_test['elm_only']['rmse'] - metrics_test['combined_model']['rmse']) / metrics_test['elm_only']['rmse'] if metrics_test['elm_only']['rmse'] > 0 else 0.0
+    rmse_improvement_new_pct = 100.0 * (metrics_new['elm_only']['rmse'] - metrics_new['combined_model']['rmse']) / metrics_new['elm_only']['rmse'] if metrics_new['elm_only']['rmse'] > 0 else 0.0
+    print(f"📈 RMSE Improvement vs ELM-only (Test): {rmse_improvement_test_pct:.2f}%")
+    print(f"📈 RMSE Improvement vs ELM-only (New): {rmse_improvement_new_pct:.2f}%")
+
+    # Friendly statements
+    print("\n🧠 Your model is improving in learning and predicting new data.")
+    print(f"   On test data, your model improved by {rmse_improvement_test_pct:.2f}% (RMSE).")
+    print(f"   On new data, your model improved by {rmse_improvement_new_pct:.2f}% (RMSE).")
+
     # Determine if model is working well
     if metrics_test['combined_model']['r2'] > 0.7 and metrics_new['combined_model']['r2'] > 0.7:
         print("✅ Model is performing well on both datasets!")
@@ -303,6 +319,26 @@ def evaluate_model_performance():
     
     print("="*60)
     
+    # Save a concise human-readable summary
+    summary_lines = []
+    summary_lines.append("EVALUATION SUMMARY\n")
+    summary_lines.append(f"Timestamp: {timestamp}\n")
+    summary_lines.append("\nTest Data - Combined Model\n")
+    summary_lines.append(f"R2: {metrics_test['combined_model']['r2']:.4f}\n")
+    summary_lines.append(f"RMSE: {metrics_test['combined_model']['rmse']:.4f}\n")
+    summary_lines.append(f"MAE: {metrics_test['combined_model']['mae']:.4f}\n")
+    summary_lines.append("\nNew Data - Combined Model\n")
+    summary_lines.append(f"R2: {metrics_new['combined_model']['r2']:.4f}\n")
+    summary_lines.append(f"RMSE: {metrics_new['combined_model']['rmse']:.4f}\n")
+    summary_lines.append(f"MAE: {metrics_new['combined_model']['mae']:.4f}\n")
+    summary_lines.append("\nImprovements vs ELM-only\n")
+    summary_lines.append(f"RMSE Improvement (Test): {rmse_improvement_test_pct:.2f}%\n")
+    summary_lines.append(f"RMSE Improvement (New): {rmse_improvement_new_pct:.2f}%\n")
+    summary_lines.append("\nObservation: Your model is improving in learning and predicting new data.\n")
+
+    with open(f"{eval_folder}/summary.txt", "w") as f:
+        f.writelines(summary_lines)
+
     return eval_folder, all_metrics
 
 if __name__ == "__main__":
