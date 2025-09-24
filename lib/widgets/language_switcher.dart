@@ -6,8 +6,9 @@ class LanguageSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = MyApp.of(context); // safe access
     return DropdownButton<Locale>(
-      value: MyApp.of(context).locale, // ✅ use the getter, not _locale
+      value: appState?.locale ?? const Locale('en'),
       icon: const Icon(Icons.language, color: Colors.white),
       dropdownColor: Colors.blue[700],
       underline: const SizedBox(),
@@ -27,7 +28,7 @@ class LanguageSwitcher extends StatelessWidget {
       ],
       onChanged: (Locale? newLocale) {
         if (newLocale != null) {
-          MyApp.of(context).setLocale(newLocale); // ✅ updates the locale
+          appState?.setLocale(newLocale);
         }
       },
     );

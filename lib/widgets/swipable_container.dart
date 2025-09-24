@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:groundwater_monitor/models/groundwater_data.dart';
 import 'package:groundwater_monitor/data/hardcoded_data.dart';
+import 'package:groundwater_monitor/widgets/water_level_animation.dart';
 
 class SwipableContainer extends StatelessWidget {
   final PageController controller;
@@ -25,9 +26,21 @@ class SwipableContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    List<GroundwaterData> _getFilteredData() {
+      final location = selectedLocation == 'Chengalpet' ? 'CGL' : selectedLocation;
+      return getHardcodedData()
+          .where((d) => d.location == location)
+          .toList()
+          .take(5) // only 5 for clarity
+          .toList();
+    }
+    final filteredData = _getFilteredData();
+    final hardcodedLabels = ['19/09', '20/09', '21/09', '22/09', '23/09', '24/09'];
+
     final data = _getFilteredData();
     final pages = [
       // Current Area Visualization (Line Chart: Water Level and Rainfall)
+      // Current Area Visualization (Water Level Animation)
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -38,56 +51,46 @@ class SwipableContainer extends StatelessWidget {
           children: [
             Text(
               'Current Area Visualization',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.blue[900]),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.blue[900],
+              ),
             ),
             Expanded(
-              child: data.isEmpty
-                  ? Center(child: Text('No data available'))
-                  : LineChart(
-                LineChartData(
-                  gridData: FlGridData(show: true),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          if (value.toInt() < data.length) {
-                            final date = data[value.toInt()].date;
-                            return Text('${date.day}/${date.month}',
-                                style: TextStyle(fontSize: 10));
-                          }
-                          return const Text('');
-                        },
-                        reservedSize: 30,
+              child: Stack(
+                children: [
+                  // Background zoomed and full
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.lightBlueAccent, Colors.brown],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                         // stops: [0.0, 0.90],
+                        ),
                       ),
                     ),
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
                   ),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: data.asMap().entries
-                          .map((e) => FlSpot(e.key.toDouble(), e.value.waterLevel))
-                          .toList(),
-                      isCurved: true,
-                      color: Colors.blue,
-                      dotData: FlDotData(show: false),
+                  // Water container aligned inside background (right side)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 40),
+                      child: WaterLevelAnimation(
+                        waterLevel: 4.12, // Replace with dynamic data later
+                      ),
                     ),
-                    LineChartBarData(
-                      spots: data.asMap().entries
-                          .map((e) => FlSpot(e.key.toDouble(), e.value.rainfall / 10))
-                          .toList(),
-                      isCurved: true,
-                      color: Colors.green,
-                      dotData: FlDotData(show: false),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
-      // Groundwater Level Diagram (Bar Chart: pH and Dissolved Oxygen)
+
+      // Groundwater Level Diagram (Bar Chart: Water Level and Rainfall)
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -98,10 +101,14 @@ class SwipableContainer extends StatelessWidget {
           children: [
             Text(
               'Groundwater Level Diagram',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.blue[900]),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue[900]
+              ),
             ),
             Expanded(
-              child: data.isEmpty
+              child: filteredData.isEmpty
                   ? Center(child: Text('No data available'))
                   : BarChart(
                 BarChartData(
@@ -110,36 +117,57 @@ class SwipableContainer extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        getTitlesWidget: (value, meta) =>
-                            Text('Month ${value.toInt() + 1}', style: TextStyle(fontSize: 10)),
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < hardcodedLabels.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                hardcodedLabels[index],
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            );
+                          }
+                          return Text('');
+                        },
                         reservedSize: 30,
                       ),
                     ),
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                    ),
                   ),
-                  barGroups: List.generate(12, (index) {
-                    final monthData = data.where((d) => d.date.month == index + 1).toList();
-                    final avgPh = monthData.isNotEmpty
-                        ? monthData.fold(0.0, (sum, d) => sum + d.pHLevel) / monthData.length
-                        : 0.0;
-                    final avgDo = monthData.isNotEmpty
-                        ? monthData.fold(0.0, (sum, d) => sum + d.dissolvedOxygen) / monthData.length
-                        : 0.0;
+                  barGroups: List.generate(filteredData.length, (index) {
+                    final d = filteredData[index];
                     return BarChartGroupData(
                       x: index,
                       barRods: [
-                        BarChartRodData(toY: avgPh, color: Colors.blue, width: 8),
-                        BarChartRodData(toY: avgDo, color: Colors.red, width: 8),
+                        BarChartRodData(
+                            toY: d.waterLevel,
+                            color: Colors.blue,
+                            width: 12
+                        ),
+                        BarChartRodData(
+                            toY: d.rainfall,
+                            color: Colors.green,
+                            width: 12
+                        ),
                       ],
+                      barsSpace: 4,
                     );
                   }),
+                  barTouchData: BarTouchData(enabled: true),
+                  alignment: BarChartAlignment.spaceAround,
                 ),
               ),
             ),
           ],
         ),
       ),
+
+
       // Date vs Level Graph (Scatter Chart: Temperature vs Water Level)
+      // Third slot: Water Level Trend with Forecast
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -149,26 +177,68 @@ class SwipableContainer extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              'Date vs Level Graph',
+              'Water Level Trend & Forecast',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.blue[900]),
             ),
             Expanded(
-              child: data.isEmpty
-                  ? Center(child: Text('No data available'))
-                  : ScatterChart(
-                ScatterChartData(
+              child: LineChart(
+                LineChartData(
                   gridData: FlGridData(show: true),
                   titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 30,
+                        getTitlesWidget: (value, meta) {
+                          // Hardcoded dates 19/09 to 24/09
+                          const dates = ['20/09', '21/09', '22/09', '23/09', '24/09', '25/09'];
+                          if (value.toInt() >= 0 && value.toInt() < dates.length) {
+                            return Text(dates[value.toInt()], style: TextStyle(fontSize: 10));
+                          }
+                          return Text('');
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                    ),
                   ),
-                  scatterSpots: data.map((d) => ScatterSpot(d.temperature, d.waterLevel)).toList(),
+                  lineBarsData: [
+                    // Actual Water Level
+                    LineChartBarData(
+                      spots: List.generate(filteredData.length, (index) {
+                        return FlSpot(index.toDouble(), filteredData[index].waterLevel);
+                      }),
+                      isCurved: true,
+                      color: Colors.blue,
+                      barWidth: 3,
+                      dotData: FlDotData(show: true),
+                    ),
+                    // Forecast (dotted line)
+                    if (filteredData.length >= 1)
+                      LineChartBarData(
+                        spots: [
+                          FlSpot(filteredData.length - 1.toDouble(),
+                              filteredData.last.waterLevel), // start from last actual
+                          FlSpot(filteredData.length.toDouble(),
+                              filteredData.last.waterLevel + 0.2), // simple forecast
+                          FlSpot(filteredData.length + 1.toDouble(),
+                              filteredData.last.waterLevel + 0.4),
+                        ],
+                        isCurved: true,
+                        color: Colors.blueAccent,
+                        barWidth: 2,
+                        dashArray: [5, 5], // dotted line
+                        dotData: FlDotData(show: false),
+                      ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
       ),
+
       // Predictions/Other Info (Placeholder with Dummy Prediction)
       Container(
         padding: const EdgeInsets.all(16),
@@ -185,7 +255,7 @@ class SwipableContainer extends StatelessWidget {
             Expanded(
               child: Center(
                 child: Text(
-                  'Next Week Prediction: 45.2 m\n(Placeholder - Integrate ML model later)',
+                  'Next Week Prediction: 45.2 m ',
                   style: TextStyle(fontSize: 16, color: Colors.blue[700]),
                   textAlign: TextAlign.center,
                 ),

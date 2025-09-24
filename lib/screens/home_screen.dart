@@ -53,7 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context)!; // ✅ non-null
+    final l = AppLocalizations.of(context); // no !
+    if (l == null) return const SizedBox();
 
     return Scaffold(
       appBar: AppBar(
@@ -86,14 +87,24 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Stack(
         children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/home_bg.jpg', // replace with your image path
+              fit: BoxFit.cover,
+            ),
+          ),
           ListView(
             controller: _scrollController,
+            padding: EdgeInsets.zero,
             children: [
               Column(
+
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  
                   // Hero Section
                   Container(
+
                     height: MediaQuery.of(context).size.height * 0.75,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -155,9 +166,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+
                   // SwipableContainer Section with Visualizations
                   Container(
                     key: _pageViewKey,
+
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,

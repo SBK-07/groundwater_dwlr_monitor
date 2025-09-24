@@ -26,7 +26,6 @@ class _DatasetPageState extends State<DatasetPage> {
   List<GroundwaterData> _filterData() {
     var data = getHardcodedData();
     if (_selectedLocation != null) {
-      // Map 'Chengalpet' to 'CGL' for data compatibility
       String location = _selectedLocation == 'Chengalpet' ? 'CGL' : _selectedLocation!;
       data = data.where((d) => d.location == location).toList();
     }
@@ -46,6 +45,9 @@ class _DatasetPageState extends State<DatasetPage> {
     if (picked != null) {
       setState(() {
         _startDate = picked;
+        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+          _endDate = null;
+        }
       });
     }
   }
@@ -60,6 +62,9 @@ class _DatasetPageState extends State<DatasetPage> {
     if (picked != null) {
       setState(() {
         _endDate = picked;
+        if (_startDate != null && _startDate!.isAfter(_endDate!)) {
+          _startDate = null;
+        }
       });
     }
   }
@@ -68,7 +73,8 @@ class _DatasetPageState extends State<DatasetPage> {
     if (_selectedLocation == null || _startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select location, start date, and end date', style: GoogleFonts.poppins()),
+          content: Text('Please select location, start date, and end date',
+              style: GoogleFonts.poppins()),
           backgroundColor: Colors.orange,
         ),
       );
@@ -78,7 +84,8 @@ class _DatasetPageState extends State<DatasetPage> {
     if (_endDate!.isBefore(_startDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('End date must be after start date', style: GoogleFonts.poppins()),
+          content: Text('End date must be after start date',
+              style: GoogleFonts.poppins()),
           backgroundColor: Colors.red,
         ),
       );
@@ -90,7 +97,6 @@ class _DatasetPageState extends State<DatasetPage> {
       _filtersApplied = false;
     });
 
-    // Simulate data fetch delay
     Future.delayed(const Duration(seconds: 1), () {
       setState(() {
         _dataset = _filterData();
@@ -104,7 +110,8 @@ class _DatasetPageState extends State<DatasetPage> {
     if (_dataset.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No data available to download. Apply filters first.', style: GoogleFonts.poppins()),
+          content: Text('No data available to download. Apply filters first.',
+              style: GoogleFonts.poppins()),
           backgroundColor: Colors.orange,
         ),
       );
@@ -115,7 +122,6 @@ class _DatasetPageState extends State<DatasetPage> {
       _isLoading = true;
     });
 
-    // Simulate download process
     Future.delayed(const Duration(seconds: 2), () {
       setState(() {
         _isLoading = false;
@@ -150,33 +156,11 @@ class _DatasetPageState extends State<DatasetPage> {
     });
   }
 
-  Color _getWaterLevelColor(double level) {
-    if (level < 2) return Colors.red; // Adjusted for realistic CSV data
-    if (level < 5) return Colors.orange;
-    return Colors.green;
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Normal':
-        return Colors.green;
-      case 'Suspicious':
-        return Colors.orange;
-      case 'Critical':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.isAuthority ? 'Authority Dataset' : 'Groundwater Dataset',
-          style: GoogleFonts.poppins(),
-        ),
+        title: Text('Groundwater Dataset', style: GoogleFonts.poppins()),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -219,6 +203,7 @@ class _DatasetPageState extends State<DatasetPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
+
                     // Location Dropdown
                     DropdownButtonFormField<String>(
                       value: _selectedLocation,
@@ -243,6 +228,7 @@ class _DatasetPageState extends State<DatasetPage> {
                       },
                     ),
                     const SizedBox(height: 16),
+
                     // Date Range Picker
                     Row(
                       children: [
@@ -255,7 +241,7 @@ class _DatasetPageState extends State<DatasetPage> {
                               floatingLabelStyle: TextStyle(color: Colors.blue[700]),
                               hintText: _startDate == null
                                   ? 'Select start date'
-                                  : DateFormat('yyyy-MM-dd').format(_startDate!),
+                                  : _startDate!.toString().split(' ')[0],
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -273,7 +259,7 @@ class _DatasetPageState extends State<DatasetPage> {
                               floatingLabelStyle: TextStyle(color: Colors.blue[700]),
                               hintText: _endDate == null
                                   ? 'Select end date'
-                                  : DateFormat('yyyy-MM-dd').format(_endDate!),
+                                  : _endDate!.toString().split(' ')[0],
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -284,6 +270,7 @@ class _DatasetPageState extends State<DatasetPage> {
                       ],
                     ),
                     const SizedBox(height: 20),
+
                     // Action Buttons
                     Row(
                       children: [
@@ -325,6 +312,7 @@ class _DatasetPageState extends State<DatasetPage> {
                 ),
               ),
             ),
+
             // Dataset Display Section
             Expanded(
               child: _isLoading
@@ -407,6 +395,7 @@ class _DatasetPageState extends State<DatasetPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
+
                     // Dataset Table
                     Expanded(
                       child: Card(
@@ -457,75 +446,22 @@ class _DatasetPageState extends State<DatasetPage> {
                                         textAlign: TextAlign.center,
                                       ),
                                     ),
-                                    if (widget.isAuthority) ...[
-                                      Expanded(
-                                        child: Text(
-                                          'Temperature',
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue[900],
-                                          ),
-                                          textAlign: TextAlign.center,
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        'Status',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.blue[900],
                                         ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      Expanded(
-                                        child: Text(
-                                          'pH Level',
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue[900],
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          'Dissolved Oxygen',
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue[900],
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          'Anomaly Status',
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue[900],
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          'Station Status',
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue[900],
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ] else ...[
-                                      Expanded(
-                                        child: Text(
-                                          'pH Level',
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue[900],
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ],
                                 ),
                               ),
                               const SizedBox(height: 8),
+
                               // Table Body
                               Expanded(
                                 child: ListView.builder(
@@ -534,7 +470,9 @@ class _DatasetPageState extends State<DatasetPage> {
                                     final data = _dataset[index];
                                     return Container(
                                       decoration: BoxDecoration(
-                                        color: index.isEven ? Colors.white : Colors.grey[50],
+                                        color: index.isEven
+                                            ? Colors.white
+                                            : Colors.grey[50],
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       margin: const EdgeInsets.only(bottom: 4),
@@ -572,79 +510,29 @@ class _DatasetPageState extends State<DatasetPage> {
                                               textAlign: TextAlign.center,
                                             ),
                                           ),
-                                          if (widget.isAuthority) ...[
-                                            Expanded(
-                                              child: Text(
-                                                '${data.temperature.toStringAsFixed(1)} °C',
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: Colors.blue[600],
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                '${data.pHLevel.toStringAsFixed(1)}',
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: Colors.blue[600],
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                '${data.dissolvedOxygen.toStringAsFixed(1)} mg/L',
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: Colors.blue[600],
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: _getStatusColor(data.anomalyStatus),
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  data.anomalyStatus,
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 10,
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w500,
+                                          Expanded(
+                                            flex: 2,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: _getStatusColor(data.anomalyStatus),
+                                                    borderRadius: BorderRadius.circular(12),
                                                   ),
-                                                  textAlign: TextAlign.center,
+                                                  child: Text(
+                                                    data.anomalyStatus,
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 10,
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
                                             ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                data.stationStatus,
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: Colors.blue[600],
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                          ] else ...[
-                                            Expanded(
-                                              child: Text(
-                                                '${data.pHLevel.toStringAsFixed(1)}',
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: Colors.blue[600],
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ],
                                       ),
                                     );
@@ -660,6 +548,7 @@ class _DatasetPageState extends State<DatasetPage> {
                 ),
               ),
             ),
+
             // Download Button Section
             if (_dataset.isNotEmpty)
               Container(
@@ -704,5 +593,24 @@ class _DatasetPageState extends State<DatasetPage> {
         ),
       ),
     );
+  }
+
+  Color _getWaterLevelColor(double level) {
+    if (level < 38) return Colors.red;
+    if (level < 42) return Colors.orange;
+    return Colors.green;
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Normal':
+        return Colors.green;
+      case 'Suspicious':
+        return Colors.orange;
+      case 'Critical':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

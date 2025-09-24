@@ -4,13 +4,37 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:groundwater_monitor/screens/home_screen.dart';
 import 'package:groundwater_monitor/screens/dataset_page.dart'; // Add this
 import 'package:groundwater_monitor/screens/authority_dashboard.dart'; // Add this
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  // Add this static method to allow other widgets to access the state
+  static _MyAppState of(BuildContext context) {
+    return context.findAncestorStateOfType<_MyAppState>()!;
+  }
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale _locale = const Locale('en');
+
+  // Getter for current locale
+  Locale get locale => _locale;
+
+  // Setter to update locale
+  void setLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +66,14 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
+      locale: _locale, // Set the locale
+      supportedLocales: AppLocalizations.supportedLocales, // ✅ add this
+      localizationsDelegates: const [
+        AppLocalizations.delegate, // ✅ your app-specific delegate
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const HomeScreen(),
     );
   }
