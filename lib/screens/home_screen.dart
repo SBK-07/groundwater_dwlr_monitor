@@ -11,6 +11,7 @@ import 'package:groundwater_monitor/models/groundwater_data.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:groundwater_monitor/l10n/app_localizations.dart';
 import 'package:groundwater_monitor/widgets/language_switcher.dart';
+import 'package:groundwater_monitor/screens/chat_bot_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -321,8 +322,43 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatBotScreen()),
+          );
+        },
+        backgroundColor: Colors.transparent,
+        elevation: 8,
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.purple[500]!, Colors.pink[400]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withOpacity(0.4),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.chat,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
     );
   }
+
 
   Widget _buildMenuButton(
       BuildContext context, String title, IconData icon, VoidCallback onTap) {
