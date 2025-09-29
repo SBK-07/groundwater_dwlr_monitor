@@ -12,6 +12,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:groundwater_monitor/l10n/app_localizations.dart';
 import 'package:groundwater_monitor/widgets/language_switcher.dart';
 import 'package:groundwater_monitor/screens/chat_bot_screen.dart';
+import 'package:groundwater_monitor/widgets/ghi_indicator.dart';
+import 'package:groundwater_monitor/widgets/ph_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -130,6 +132,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             textAlign: TextAlign.center,
                           ),
                         ),
+
+                        SizedBox(
+                          width: 350, // adjust as needed
+                          child: GHIIndicator(
+                            location: 'Location: Chengalpattu',
+                            ghiScore: 65,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        SizedBox(
+                          width: 350,
+                          child: PHIndicator(phValue: 7.2), // example pH value
+                        ),
+
                         const Spacer(),
                         Padding(
                           padding: const EdgeInsets.all(24.0),
@@ -167,6 +185,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+
+
 
                   // SwipableContainer Section with Visualizations
                   Container(
