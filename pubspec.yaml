@@ -16,6 +16,7 @@ dependencies:
   google_fonts: ^6.3.1
   fl_chart: ^1.1.1
   vector_math: ^2.2.0
+  http: ^1.2.0            # Added for MLService HTTP communication
 
 dev_dependencies:
   flutter_test:
