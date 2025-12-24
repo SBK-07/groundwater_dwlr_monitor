@@ -1,9 +1,8 @@
 plugins {
-    id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id("dev.flutter.flutter-gradle-plugin")
+    id("com.android.application") version "8.4.1" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.10" apply false
 }
+
 
 android {
     namespace = "com.example.groundwater_dwlr_monitor"
