@@ -248,18 +248,18 @@ groundwater_dwlr_monitor/
 
 ## 🚀 Future Enhancements / Roadmap
 
-| Priority | Enhancement | Description |
-|----------|------------|-------------|
-| 🔴 High | **Live API Integration** | Connect to India-WRIS / CWC DWLR data feeds for real-time monitoring |
-| 🔴 High | **Firebase Backend** | Replace mock auth and in-memory data with Firebase Auth + Firestore |
-| 🟡 Medium | **ML-Based Anomaly Detection** | Train an LSTM or Isolation Forest model on DWLR time-series for predictive alerting |
-| 🟡 Medium | **Push Notifications** | FCM-based alerts for critical water level thresholds or station failures |
-| 🟡 Medium | **PDF Report Export** | Full formatted monthly reports with charts, statistics, and authority sign-off |
-| 🟡 Medium | **Multi-Station Dashboard** | Aggregate view across all DWLR stations with map-based drill-down |
-| 🟢 Low | **Offline Mode** | Local caching of recent sensor data for field use in low-connectivity areas |
-| 🟢 Low | **Dark Mode** | Adaptive theme support for the full application |
-| 🟢 Low | **Data Export (CSV/Excel)** | Allow authorities to export filtered datasets for external analysis |
-| 🟢 Low | **Localization (Tamil / Hindi)** | Regional language support for field personnel in Tamil Nadu |
+| Enhancement | Description |
+|------------|-------------|
+| **Live API Integration** | Connect to India-WRIS / CWC DWLR data feeds for real-time monitoring |
+| **Firebase Backend** | Replace mock auth and in-memory data with Firebase Auth + Firestore |
+| **ML-Based Anomaly Detection** | Train an LSTM or Isolation Forest model on DWLR time-series for predictive alerting |
+| **Push Notifications** | FCM-based alerts for critical water level thresholds or station failures |
+| **PDF Report Export** | Full formatted monthly reports with charts, statistics, and authority sign-off |
+| **Multi-Station Dashboard** | Aggregate view across all DWLR stations with map-based drill-down |
+| **Offline Mode** | Local caching of recent sensor data for field use in low-connectivity areas |
+| **Dark Mode** | Adaptive theme support for the full application |
+| **Data Export (CSV/Excel)** | Allow authorities to export filtered datasets for external analysis |
+| **Localization (Tamil / Hindi)** | Regional language support for field personnel in Tamil Nadu |
 
 ---
 
